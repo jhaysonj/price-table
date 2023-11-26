@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt" xml:lang="pt" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+    <title>Tabela Price</title>
+    <meta charset="utf8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <link rel="stylesheet"
+        href="https://ajax.googleapis.com/ajax/libs/jqueryui/1.12.1/themes/smoothness/jquery-ui.css" />
+    <!-- Removido o polyfiller.js, pois não parece ser necessário para a funcionalidade atual -->
+    <link rel="stylesheet" href="./main.css">
+</head>
+
+<body>
+    <fieldset id="cdcfieldset" class="draggable ui-widget-content" style="
+        border: 1px black solid;
+        background-color: #cac3ba;
+        width: 400px;
+    ">
+        <legend style="
+            border: 5px lightblue solid;
+            margin-left: 1em;
+            background-color: #ff6347;
+            padding: 0.2em 0.8em;
+        ">
+            <strong>Crédito Direto ao Consumidor</strong>
+        </legend>
+        <form id="priceForm" action="generate_price_table.php" method="post">
+            <div class="box">
+                <span class="input-group-addon" style="color: antiquewhite">$</span>
+                <label for="parc">Parcelamento:</label>
+                <input id="parc" type="number" name="np" size="5" value="36" min="1" max="72000" step="1"
+                    required />meses<br />
+
+                <span class="input-group-addon" style="color: antiquewhite">$</span>
+                <label for="itax">Taxa de juros:</label>
+                <input id="itax" type="number" name="tax" size="10" value="0.50" min="0.0" max="100.0" step="any"
+                    required />% mês<br />
+
+                <span class="input-group-addon">$</span>
+                <label for="ipv">Valor Financiado: </label>
+                <input id="ipv" type="number" name="pv" value="1000" min="0.0" step="0.01" class="form-control currency"
+                    required /><br />
+
+                <span class="input-group-addon">$</span>
+                <label for="ipp">Valor Final (opcional):</label>
+                <input id="ipp" type="number" name="pp" value="0.0" min="0.0" step="0.01" class="form-control currency"
+                    required /><br />
+
+                <span class="input-group-addon">$</span>
+                <label for="ipb">Valor a Voltar(opcional):</label>
+                <input id="ipb" type="number" name="pb" value="0.0" min="0.0" step="0.01" class="form-control currency"
+                    required /><br />
+
+                <span class="input-group-addon" style="color: antiquewhite">$</span>
+
+
+                <label for="mesesVoltar">Meses a Voltar (opcional):</label>
+                <input id="mesesVoltarInput" type="number" name="mesesVoltar" value="0" min="0" step="1" /><br />
+
+
+                <label for="idp">Entrada?</label>
+                <input id="idp" type="checkbox" name="dp" value="1" /><br />
+
+                <label for="imprimir">Imprimir?</label>
+                <input id="imprimir" type="checkbox" name="imprimir" value="1" /><br />
+
+            </div>
+
+            <div class="messages">
+                <!-- Alteração: use o evento submit no formulário -->
+                <input class="button" type="submit" value="Calcular" />
+                <input id="showFormButton" class="button" type="button" value="Mostrar Formulário"
+                    style="display: none;" />
+                <p>(arraste-me para reposicionar a janela)</p>
+            </div>
+
+        </form>
+        </fieldset>
+        <!-- Adicione o trecho abaixo para exibir os resultados -->
+        <div id="resultTable">
+        </div>
+
+        
+        <script>
+            $(function () {
+                $("#cdcfieldset").draggable();
+            });
+        </script>
+
+        <script type="text/javascript">
+            $(document).ready(function () {
+                $("#priceForm").submit(function (event) {
+                    // Impedir o envio do formulário padrão
+                    event.preventDefault();
+
+                    // Obter os dados do formulário
+                    var formData = $(this).serialize();
+
+                    // Enviar os dados para o servidor
+                    $.ajax({
+                        type: "POST",
+                        url: "./generate_price_table.php",
+                        data: formData,
+                        success: function (data) {
+                            // Processar os resultados recebidos do servidor (pode adicionar aqui conforme necessário)
+                            console.log(data);
+                        },
+                        error: function (error) {
+                            // Lidar com erros de requisição
+                            console.log(error.responseText);
+                        }
+                    });
+                });
+            });
+        </script>
+
+<script src="LCG.js"></script>
+
+        <script type="text/javascript">
+            $(document).ready(function () {
+                $("#priceForm").submit(function (event) {
+                    // Impedir o envio do formulário padrão
+                    event.preventDefault();
+
+                    // Obter os dados do formulário
+                    var formData = $(this).serialize();
+
+                    // Enviar os dados para o servidor
+                    $.ajax({
+                        type: "POST",
+                        url: "./generate_price_table.php",
+                        data: formData,
+                        success: function (data) {
+                            // Processar os resultados recebidos do servidor
+                            displayResults(data);
+                            $("#cdcfieldset").hide();
+                        },
+                        error: function (error) {
+                            // Lidar com erros de requisição
+                            console.log(error.responseText);
+                        }
+                    });
+                });
+
+                function displayResults(data) {
+                    // Exibir os resultados na sua página
+                    $("#resultTable").empty(); // Limpar a tabela existente, se houver
+
+                    // Adicionar cabeçalho da tabela
+                    var tableHtml = "<table border='1'><tr><th>Mês</th><th>PMT</th><th>Juros</th><th>Amortização</th><th>Saldo Devedor</th></tr>";
+
+                    // Adicionar linhas da tabela
+                    data.resultTable.forEach(function (row) {
+                        tableHtml += "<tr><td>" + row.month + "</td><td>" + row.pmt + "</td><td>" + row.juros + "</td><td>" + row.amortizacao + "</td><td>" + row.saldoDevedor + "</td></tr>";
+                    });
+
+                    // Fechar a tabela
+                    tableHtml += "</table>";
+
+                    // Adicionar a tabela à div com o ID 'resultTable'
+                    $("#resultTable").html(tableHtml);
+                }
+
+            });
+        </script>
+
+
+
+
+</body>
+
+</html>
