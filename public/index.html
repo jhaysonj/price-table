@@ -170,7 +170,15 @@
 
         // Adicionar cabeçalho da tabela
         var tableHtml =
-          "<table border='1'><tr><th>Mês</th><th>Prestação</th><th>Juros</th><th>Amortização</th><th>Saldo Devedor</th></tr>";
+          `<table border='1'><tr><th>Mês</th><th>Prestação</th><th>Juros</th><th>Amortização</th><th>Saldo Devedor</th></tr>
+                  <tr>
+                <td>n</td>
+                <td>R = pmt</td>
+                <td>J = SD * t</td>
+                <td>U = pmt - J</td>
+                <td>SD = PV - U</td>
+            </tr>`;
+            
 
         // Adicionar linhas da tabela
         data.resultTable.forEach(function (row) {
@@ -187,7 +195,15 @@
             row.saldoDevedor +
             "</td></tr>";
         });
-
+        tableHtml+=`
+        <tr>
+            <td>Total</td>
+            <td> ${(data.np*data.pmt).toFixed(2)} </td>
+            <td> ${data.tax.toFixed(3)} </td>
+            <td> ${data.valorFinanciado.toFixed(2)} </td>
+            <td>0.00</td>
+            </tr>
+            `;
         // Fechar a tabela
         tableHtml += "</table>";
 
