@@ -24,7 +24,7 @@ function calcularTaxa($valorPrazo, $valorVista, $numPrestacoes)
 }
 
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
-    $n = isset($_POST["np"]) ? intval($_POST["np"]) - (isset($_POST["dp"]) ? 1 : 0) : 0;
+    // $n = isset($_POST["np"]) ? intval($_POST["np"]) - (isset($_POST["dp"]) ? 1 : 0) : 0;
 
     // Verificar se os campos obrigatórios estão presentes
     if (!isset($_POST["np"]) || !isset($_POST["pv"]) || !isset($_POST["tax"])) {
@@ -63,7 +63,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     $cost = $n * $pmt - $pv;
-    $totalPaid = $pv + $cost;
+    $totalPaid = 0;
 
     $resultTable = [];
     $saldoDevedor = $pv;
@@ -71,7 +71,36 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $taxaAnual = (pow(1 + $i, 12) - 1) * 100;
 
     
-    $coeficienteFinanciamento = ($i / (1 - pow(1 + $i, -$n)));
+    $coeficienteFinanciamento = ($i / (1 - pow(1 + $i, -$np)));
+
+    $pmt = $pv * $coeficienteFinanciamento;
+    // there is no sense in a montly payment greater than the loan...
+    if ($pmt >= $pv) {
+      throw new Error(
+        `Prestação (\$${pmt.toFixed(2)}) é maior do que o empréstimo`
+      );
+    }
+
+    if ($_POST["dp"]) {
+      $pmt /= 1 + $tax; // diminui a prestação
+      $np -= 1; // uma prestação a menos
+      $pv -= $pmt; // preço à vista menos a entrada
+      $coeficienteFinanciamento = $pmt / $pv; // recalculate cf
+
+      $juros = $tax;
+      $amortizacao = 0;
+      $saldoDevedor = $pv;
+
+      $resultTable[] = [
+        "month" => 0,
+        "pmt" => round($pmt, 2),
+        "juros" => round($juros, 2),
+        "amortizacao" => round($amortizacao, 2),
+        "saldoDevedor" => round($pv, 2),
+    ];
+    $totalPaid = $pmt;
+    }
+
 
     for ($month = 1; $month <= $n; $month++) {
         $juros = $saldoDevedor * $i;
@@ -94,6 +123,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             "saldoDevedor" => round($saldoDevedor, 2),
         ];
     }
+    $totalPaid += $np * $pmt;
 
     // Adicionar o cabeçalho Content-Type para indicar que a resposta é JSON
     header('Content-Type: application/json');
@@ -107,7 +137,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         "totalPaid" => round($totalPaid, 2),
         "resultTable" => $resultTable,
         "valorFinanciado" => round($pv, 2),
-        "valorVoltar" => round($pb, 2),
+        "valorVoltar" => round( $pmt * $mesesVoltar, 2),
         "valorCorrigido" => round($valorCorrigido, 2),
         "np" => $np,
         "tax" => $tax,
